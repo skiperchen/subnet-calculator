@@ -1,0 +1,23 @@
+# Build outputs
+output/
+dist/
+*.zip
+*.dmg
+
+# Dependencies
+node_modules/
+electron/node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc

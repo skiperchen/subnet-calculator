@@ -1,0 +1,50 @@
+{
+  "name": "subnet-calculator",
+  "version": "2.0.0",
+  "description": "子网掩码计算器 - macOS 桌面应用",
+  "main": "main.js",
+  "author": "陈常勇",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "build:mac": "electron-builder --mac --arm64 --x64",
+    "build:mac-arm": "electron-builder --mac --arm64",
+    "build:mac-x64": "electron-builder --mac --x64"
+  },
+  "build": {
+    "appId": "com.subnetcalc.app",
+    "productName": "子网掩码计算器",
+    "directories": {
+      "output": "../output"
+    },
+    "files": [
+      "main.js",
+      "index.html",
+      "preload.js"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ],
+      "icon": "icon.png",
+      "minimumSystemVersion": "10.13",
+      "hardenedRuntime": true,
+      "extendInfo": {
+        "CFBundleDevelopmentRegion": "zh_CN"
+      }
+    },
+    "dmg": {
+      "title": "子网掩码计算器",
+      "window": {
+        "width": 500,
+        "height": 350
+      }
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0"
+  }
+}

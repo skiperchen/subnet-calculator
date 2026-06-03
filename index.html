@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>子网掩码计算器</title>
+<style>
+:root {
+  --bg: #f5f5f7;
+  --card-bg: #ffffff;
+  --text: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --border: #d2d2d7;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --input-bg: #ffffff;
+  --input-border: #d2d2d7;
+  --input-focus: #0071e3;
+  --output-bg: #f5f5f7;
+  --tab-active: #0071e3;
+  --tab-hover: #f5f5f7;
+  --header-bg: rgba(255,255,255,0.72);
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --radius: 12px;
+  --success: #34c759;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--header-bg);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex; align-items: center;
+  height: 52px;
+}
+
+.header h1 {
+  font-size: 15px; font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.header .icon {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, #0071e3, #40c8ff);
+  border-radius: 7px;
+  margin-right: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 14px; font-weight: 700;
+}
+
+.tabs {
+  display: flex; gap: 2px;
+  padding: 12px 24px 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+
+.tab {
+  padding: 8px 16px;
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  border: none; background: none;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.tab:hover { background: var(--tab-hover); color: var(--text); }
+.tab.active { color: var(--tab-active); font-weight: 600; }
+
+.main-container {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 20px 24px 40px;
+}
+
+.calculator { display: none; }
+.calculator.active { display: block; }
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.card h2 {
+  font-size: 17px; font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.card .subtitle {
+  font-size: 12px; color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.input-row {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 14px; flex-wrap: wrap;
+}
+.input-row label {
+  font-size: 13px; font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 60px;
+}
+.input-row input[type="number"],
+.input-row input.ip-field {
+  width: 64px; height: 36px;
+  text-align: center;
+  font-size: 15px; font-weight: 500;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  border: 1.5px solid var(--input-border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  outline: none;
+  transition: all 0.15s;
+  -moz-appearance: textfield;
+}
+.input-row input::-webkit-inner-spin-button,
+.input-row input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.input-row input:focus {
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(0,113,227,0.12);
+}
+.input-row input.wide { width: 100px; }
+.input-row .dot { color: var(--text-secondary); font-weight: 600; font-size: 16px; }
+
+.btn-row {
+  display: flex; gap: 8px; margin-bottom: 16px;
+}
+.btn {
+  padding: 8px 20px;
+  font-size: 13px; font-weight: 500;
+  border: none; border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary {
+  background: var(--output-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: #e8e8ed; }
+
+.output-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.output-group {
+  background: var(--output-bg);
+  border-radius: 8px;
+  padding: 12px 16px;
+  position: relative;
+}
+.output-group .label {
+  font-size: 11px; font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.output-group .value {
+  font-size: 15px; font-weight: 600;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  color: var(--text);
+  word-break: break-all;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.output-group .value .octet-val {
+  display: inline-block;
+  min-width: 24px;
+}
+.output-group .value .octet-dot {
+  color: var(--text-secondary);
+  font-weight: 400;
+  min-width: 0;
+}
+
+/* Copy button */
+.copy-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 26px; height: 26px;
+  border: none; background: transparent;
+  cursor: pointer; border-radius: 6px;
+  font-size: 13px; color: var(--text-secondary);
+  transition: all 0.15s;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.copy-btn:hover { background: rgba(0,113,227,0.1); color: var(--accent); }
+.copy-btn.copied { color: var(--success); background: rgba(52,199,89,0.1); }
+
+/* Network class badge */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.badge-a { background: #34c759; color: white; }
+.badge-b { background: #ff9f0a; color: white; }
+.badge-c { background: #ff375f; color: white; }
+.badge-d { background: #8e8e93; color: white; }
+.badge-e { background: #5e5ce6; color: white; }
+.badge-loopback { background: #30b0c7; color: white; }
+.badge-special { background: #8e8e93; color: white; }
+
+/* History panel */
+.history-section {
+  margin-top: 24px;
+}
+.history-section h3 {
+  font-size: 15px; font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text);
+  display: flex; align-items: center; gap: 8px;
+}
+.history-section h3 .count {
+  font-size: 12px; font-weight: 500;
+  color: var(--text-secondary);
+}
+.history-list {
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 400px; overflow-y: auto;
+}
+.history-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  transition: all 0.15s;
+}
+.history-item:hover { border-color: var(--accent); }
+.history-item .h-time {
+  color: var(--text-secondary);
+  font-size: 11px;
+  min-width: 50px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+.history-item .h-calc {
+  color: var(--accent);
+  font-weight: 500;
+  font-size: 11px;
+  min-width: 70px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+}
+.history-item .h-input {
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 100px;
+}
+.history-item .h-result {
+  color: var(--text);
+  font-weight: 600;
+  flex: 1;
+  min-width: 100px;
+}
+.history-item .h-copy {
+  color: var(--text-secondary);
+  cursor: pointer;
+  border: none; background: none;
+  font-size: 13px; padding: 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.history-item .h-copy:hover { color: var(--accent); background: rgba(0,113,227,0.1); }
+.history-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  padding: 24px;
+}
+
+/* Shortcuts hint */
+.shortcuts-hint {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  font-size: 11px; color: var(--text-secondary);
+  margin-top: 8px;
+  padding: 0 24px;
+}
+.shortcuts-hint kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+  font-size: 10px;
+  background: var(--output-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.footer {
+  text-align: center;
+  padding: 20px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* Divider */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1c1c1e;
+    --card-bg: #2c2c2e;
+    --text: #f5f5f7;
+    --text-secondary: #98989d;
+    --border: #3a3a3c;
+    --input-bg: #3a3a3c;
+    --input-border: #545458;
+    --output-bg: #3a3a3c;
+    --tab-hover: #3a3a3c;
+    --header-bg: rgba(28,28,30,0.72);
+    --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+  .btn-secondary { background: #3a3a3c; border-color: #545458; }
+  .btn-secondary:hover { background: #48484a; }
+  .copy-btn:hover { background: rgba(0,122,255,0.2); }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="icon">IP</div>
+  <h1>子网掩码计算器</h1>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="main-container" id="main"></div>
+
+<div class="shortcuts-hint" id="shortcuts">
+  快捷键：<kbd>⌘1</kbd>–<kbd>⌘0</kbd> 切换计算器
+</div>
+
+<div class="footer">v2.0 · 子网掩码计算器</div>
+
+<script>
+// ==================== SUBNET CALCULATION ENGINE ====================
+
+function ipToInt(a, b, c, d) {
+  return (((a & 0xFF) << 24) | ((b & 0xFF) << 16) | ((c & 0xFF) << 8) | (d & 0xFF)) >>> 0;
+}
+
+function intToIp(n) {
+  return [(n >>> 24) & 0xFF, (n >>> 16) & 0xFF, (n >>> 8) & 0xFF, n & 0xFF];
+}
+
+function maskBitsToInt(bits) {
+  return bits === 0 ? 0 : (~0 << (32 - bits)) >>> 0;
+}
+
+function maskIntToBits(m) {
+  // Validates contiguity: mask must be all 1s then all 0s from the left
+  if (m === 0) return 0;
+  // Check that m | (m + 1) is all 1s for a contiguous mask (or m is 0xFFFFFFFF)
+  const wc = (~m) >>> 0;
+  if (m !== 0xFFFFFFFF && ((wc + 1) & wc) !== 0) return -1; // non-contiguous mask
+  let bits = 0, mask = 0x80000000;
+  while (mask & m) { bits++; mask >>>= 1; }
+  return bits;
+}
+
+function wildcard(mask) {
+  return (~mask) >>> 0;
+}
+
+function networkAddress(ipInt, maskBits) {
+  const mask = maskBitsToInt(maskBits);
+  return (ipInt & mask) >>> 0;
+}
+
+function broadcastAddress(ipInt, maskBits) {
+  const net = networkAddress(ipInt, maskBits);
+  const wc = wildcard(maskBitsToInt(maskBits));
+  return (net | wc) >>> 0;
+}
+
+function usableCount(maskBits) {
+  if (maskBits >= 31) return maskBits === 32 ? 1 : 0;
+  // Math.pow avoids JS 32-bit signed shift overflow: 1<<31 = -2147483648, 1<<32 = 1
+  return Math.pow(2, 32 - maskBits) - 2;
+}
+
+function totalCount(maskBits) {
+  return maskBits === 32 ? 1 : Math.pow(2, 32 - maskBits);
+}
+
+function firstUsable(ipInt, maskBits) {
+  if (maskBits >= 31) return networkAddress(ipInt, maskBits);
+  return (networkAddress(ipInt, maskBits) + 1) >>> 0;
+}
+
+function lastUsable(ipInt, maskBits) {
+  if (maskBits >= 31) return broadcastAddress(ipInt, maskBits);
+  return (broadcastAddress(ipInt, maskBits) - 1) >>> 0;
+}
+
+function ipClass(a) {
+  if (a >= 1 && a <= 126) return { name: 'A', desc: 'A类', range: '1-126' };
+  if (a === 127) return { name: 'Loopback', desc: '回环地址', range: '127' };
+  if (a >= 128 && a <= 191) return { name: 'B', desc: 'B类', range: '128-191' };
+  if (a >= 192 && a <= 223) return { name: 'C', desc: 'C类', range: '192-223' };
+  if (a >= 224 && a <= 239) return { name: 'D', desc: 'D类(组播)', range: '224-239' };
+  if (a >= 240 && a <= 255) return { name: 'E', desc: 'E类(保留)', range: '240-255' };
+  return { name: 'Special', desc: '保留/特殊', range: '0' };
+}
+
+function defaultMask(ipInt) {
+  const a = (ipInt >>> 24) & 0xFF;
+  if (a >= 1 && a <= 126) return 8;
+  if (a >= 128 && a <= 191) return 16;
+  if (a >= 192 && a <= 223) return 24;
+  return 0; // D/E/loopback/special — no default subnet mask
+}
+
+function hostCountToMaskBits(count) {
+  if (count < 1) return 32;
+  const needed = count + 2; // +2 for network + broadcast addresses
+  let hostBits = 2;
+  while (Math.pow(2, hostBits) < needed && hostBits < 32) hostBits++;
+  return 32 - hostBits;
+}
+
+// ==================== UI HELPERS ====================
+
+function q(s) { return document.querySelector(s); }
+function qa(s) { return document.querySelectorAll(s); }
+
+function getOctetInputs(cls) {
+  return Array.from(qa('input.' + cls)).map(el => parseInt(el.value) || 0);
+}
+
+function setOctetOutput(cls, vals) {
+  const spans = qa('span.' + cls);
+  spans.forEach((el, i) => {
+    el.textContent = vals[i] !== undefined ? vals[i] : '-';
+  });
+}
+
+function setValue(id, val) {
+  const el = q('#' + id);
+  if (el) el.textContent = val;
+}
+
+// Copy helpers
+function copyToClipboard(text, btn) {
+  navigator.clipboard.writeText(text).then(() => {
+    if (btn) {
+      btn.classList.add('copied');
+      btn.textContent = '✓';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = '📋';
+      }, 1500);
+    }
+  }).catch(() => {
+    // Fallback for older browsers
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (btn) {
+      btn.classList.add('copied');
+      btn.textContent = '✓';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.textContent = '📋';
+      }, 1500);
+    }
+  });
+}
+
+function copyOctetGroup(cls, btn) {
+  const spans = qa('span.' + cls);
+  const vals = Array.from(spans).map(s => s.textContent.trim());
+  copyToClipboard(vals.join('.'), btn);
+}
+
+function copyValue(id, btn) {
+  const el = q('#' + id);
+  if (el) copyToClipboard(el.textContent.trim(), btn);
+}
+
+// ==================== CALCULATION HISTORY ====================
+
+const MAX_HISTORY = 50;
+let history = JSON.parse(localStorage.getItem('subnetCalcHistory') || '[]');
+
+function addToHistory(calcName, inputDesc, resultDesc) {
+  const entry = {
+    time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    calc: calcName,
+    input: inputDesc,
+    result: resultDesc
+  };
+  history.unshift(entry);
+  if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+  localStorage.setItem('subnetCalcHistory', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const container = q('#history-list');
+  if (!container) return;
+  if (history.length === 0) {
+    container.innerHTML = '<div class="history-empty">暂无计算历史</div>';
+    q('#h-count').textContent = '';
+    return;
+  }
+  q('#h-count').textContent = '(' + history.length + ')';
+  container.innerHTML = history.map((e, i) => `
+    <div class="history-item">
+      <span class="h-time">${e.time}</span>
+      <span class="h-calc">${e.calc}</span>
+      <span class="h-input">${e.input}</span>
+      <span class="h-result">${e.result}</span>
+      <button class="h-copy" data-result="${e.result.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}" onclick="copyToClipboard(this.dataset.result, this)" title="复制结果">📋</button>
+    </div>
+  `).join('');
+}
+
+function clearHistory() {
+  history = [];
+  localStorage.removeItem('subnetCalcHistory');
+  renderHistory();
+}
+
+// ==================== CALCULATORS ====================
+
+// 1. Network & IP Calculator
+function calc1() {
+  const [a, b, c, d] = getOctetInputs('c1-ip');
+  const bits = parseInt(q('.c1-bits').value) || 0;
+  if (bits < 0 || bits > 32) return;
+  const ipInt = ipToInt(a, b, c, d);
+  const mask = maskBitsToInt(bits);
+  const net = networkAddress(ipInt, bits);
+  const bcast = broadcastAddress(ipInt, bits);
+  const first = firstUsable(ipInt, bits);
+  const last = lastUsable(ipInt, bits);
+  const usable = usableCount(bits);
+
+  setValue('c1-avail', bits === 32 ? '1 (单主机)' : bits === 31 ? '0 (P2P)' : usable.toLocaleString());
+  setOctetOutput('c1-mask', intToIp(mask));
+  setOctetOutput('c1-net', intToIp(net));
+  setOctetOutput('c1-first', intToIp(first));
+  setOctetOutput('c1-last', intToIp(last));
+  setOctetOutput('c1-bcast', intToIp(bcast));
+
+  const resultDesc = intToIp(net).join('.') + '/' + bits + ' → ' + usable.toLocaleString() + '个可用IP';
+  addToHistory('IP计算器', a + '.' + b + '.' + c + '.' + d + '/' + bits, resultDesc);
+}
+
+// 2. Subnet Mask Converter
+function calc2() {
+  const bits = parseInt(q('.c2-bits').value) || 0;
+  if (bits < 0 || bits > 32) return;
+  const mask = maskBitsToInt(bits);
+  const octets = intToIp(mask);
+  setOctetOutput('c2-dec', octets);
+  setOctetOutput('c2-hex', octets.map(v => v.toString(16).toUpperCase().padStart(2, '0')));
+  addToHistory('掩码转换', '/' + bits, octets.join('.') + ' / ' + octets.map(v => v.toString(16).toUpperCase().padStart(2, '0')).join('.'));
+}
+
+// 3. Network/Node Calculator
+function calc3() {
+  const mask = getOctetInputs('c3-mask');
+  const ip = getOctetInputs('c3-ip');
+  const maskInt = ipToInt(...mask);
+  const ipInt = ipToInt(...ip);
+  const bits = maskIntToBits(maskInt);
+  if (bits < 0) {
+    setOctetOutput('c3-net', ['-', '-', '-', '-']);
+    setOctetOutput('c3-node', ['-', '-', '-', '-']);
+    setOctetOutput('c3-bcast', ['-', '-', '-', '-']);
+    return;
+  }
+  const net = networkAddress(ipInt, bits);
+  const node = (ipInt & wildcard(maskInt)) >>> 0;
+  const bcast = broadcastAddress(ipInt, bits);
+  setOctetOutput('c3-net', intToIp(net));
+  setOctetOutput('c3-node', intToIp(node));
+  setOctetOutput('c3-bcast', intToIp(bcast));
+  addToHistory('网络/节点', '掩码:' + mask.join('.') + ' IP:' + ip.join('.'),
+    '网络:' + intToIp(net).join('.') + ' 节点:' + intToIp(node).join('.') + ' 广播:' + intToIp(bcast).join('.'));
+}
+
+// 4. Inverse Subnet Mask (Wildcard)
+function calc4() {
+  const mask = getOctetInputs('c4-mask');
+  const maskInt = ipToInt(...mask);
+  const inv = wildcard(maskInt);
+  setOctetOutput('c4-inv', intToIp(inv));
+  addToHistory('逆算掩码', mask.join('.'), intToIp(inv).join('.'));
+}
+
+// 5. Mask bits ↔ dotted decimal (bidirectional)
+function calc5_dec2bits() {
+  const mask = getOctetInputs('c5-dec');
+  const maskInt = ipToInt(...mask);
+  const bits = maskIntToBits(maskInt);
+  if (bits < 0) {
+    setValue('c5-bits', '无效掩码');
+    return;
+  }
+  setValue('c5-bits', bits);
+  addToHistory('掩码→位数', mask.join('.'), '/' + bits);
+}
+
+function calc5_bits2dec() {
+  const bits = parseInt(q('.c5-bits-in').value) || 0;
+  if (bits < 0 || bits > 32) return;
+  const mask = maskBitsToInt(bits);
+  setOctetOutput('c5-dec', intToIp(mask));
+  setValue('c5-bits', bits);
+  addToHistory('位数→掩码', '/' + bits, intToIp(mask).join('.'));
+}
+
+// 6. IP Bitwise Complement
+function calc6() {
+  const ip = getOctetInputs('c6-ip');
+  const ipInt = ipToInt(...ip);
+  const comp = (~ipInt) >>> 0;
+  setOctetOutput('c6-comp', intToIp(comp));
+  addToHistory('IP位补', ip.join('.'), intToIp(comp).join('.'));
+}
+
+// 7. IP Class & Default Mask
+function calc7() {
+  const [a, b, c, d] = getOctetInputs('c7-ip');
+  const ipInt = ipToInt(a, b, c, d);
+  const cls = ipClass(a);
+  const defBits = defaultMask(ipInt);
+
+  q('#c7-class').textContent = cls.desc;
+  q('#c7-class').className = 'badge badge-' + cls.name.toLowerCase();
+
+  if (defBits > 0) {
+    const mask = maskBitsToInt(defBits);
+    setOctetOutput('c7-mask', intToIp(mask));
+    setValue('c7-cidr', '/' + defBits);
+    setValue('c7-hosts', usableCount(defBits).toLocaleString());
+    setValue('c7-networks',
+      cls.name === 'A' ? '126' :
+      cls.name === 'B' ? '16,384' :
+      cls.name === 'C' ? '2,097,152' : '-');
+  } else {
+    setOctetOutput('c7-mask', ['-', '-', '-', '-']);
+    setValue('c7-cidr', '-');
+    setValue('c7-hosts', '-');
+    setValue('c7-networks', '-');
+  }
+  addToHistory('网络类型', a + '.' + b + '.' + c + '.' + d, cls.desc + (defBits > 0 ? ' /' + defBits : ''));
+}
+
+// 8. Host Count to Mask
+function calc8() {
+  const count = parseInt(q('.c8-count').value) || 0;
+  if (count < 1) return;
+  const bits = hostCountToMaskBits(count);
+  const mask = maskBitsToInt(bits);
+  const avail = bits < 32 ? Math.pow(2, 32 - bits) - 2 : 1;
+  setValue('c8-bits', bits);
+  setOctetOutput('c8-mask', intToIp(mask));
+  setValue('c8-avail', avail.toLocaleString());
+  addToHistory('主机→掩码', '需要' + count + '个IP', '/' + bits + ' (' + intToIp(mask).join('.') + ') 可用' + avail.toLocaleString() + '个');
+}
+
+// 9. TCP/IP Base Converter
+function calc9_dec() {
+  const ip = getOctetInputs('c9-dec');
+  setOctetOutput('c9-bin', ip.map(v => v.toString(2).padStart(8, '0')));
+  setOctetOutput('c9-hex', ip.map(v => v.toString(16).toUpperCase().padStart(2, '0')));
+  const ipInt = ipToInt(...ip);
+  setValue('c9-int32', (ipInt >>> 0).toLocaleString());
+}
+
+// Explicit history recording (called from button, not oninput)
+function calc9_dec_record() {
+  calc9_dec();
+  const ip = getOctetInputs('c9-dec');
+  addToHistory('进制转换', '十进制:' + ip.join('.'), '➜ 二进制:' + ip.map(v => v.toString(2).padStart(8, '0')).join(' '));
+}
+
+function calc9_bin() {
+  const el = q('input.c9-bin');
+  let v = el.value.replace(/[^01]/g, '').slice(0, 32);
+  el.value = v;
+  const ip = [0, 1, 2, 3].map(i => {
+    const chunk = v.slice(i * 8, i * 8 + 8).padEnd(8, '0');
+    return parseInt(chunk, 2) || 0;
+  });
+  setOctetInputsFromArr('c9-dec', ip);
+  calc9_dec();
+}
+
+function calc9_hex() {
+  const el = q('input.c9-hex');
+  let v = el.value.replace(/[^0-9A-Fa-f]/g, '').slice(0, 8);
+  el.value = v.toUpperCase();
+  const ip = [0, 1, 2, 3].map(i => {
+    const pair = v.slice(i * 2, i * 2 + 2).padEnd(2, '0');
+    return parseInt(pair || '0', 16) || 0;
+  });
+  setOctetInputsFromArr('c9-dec', ip);
+  calc9_dec();
+}
+
+function calc9_int32() {
+  const el = q('input.c9-int32');
+  let val = parseInt(el.value.replace(/[^0-9]/g, '')) || 0;
+  if (val > 0xFFFFFFFF) val = 0xFFFFFFFF;
+  el.value = val;
+  const ip = intToIp(val >>> 0);
+  setOctetInputsFromArr('c9-dec', ip);
+  calc9_dec();
+}
+
+function setOctetInputsFromArr(cls, vals) {
+  const inputs = qa('input.' + cls);
+  inputs.forEach((el, i) => {
+    if (vals[i] !== undefined) el.value = vals[i];
+  });
+}
+
+// 10. Mask to Available Addresses
+function calc10() {
+  const bits = parseInt(q('.c10-bits').value) || 0;
+  if (bits < 0 || bits > 32) return;
+  const usable = usableCount(bits);
+  const total = totalCount(bits);
+  setValue('c10-avail', bits === 32 ? '1 (单主机)' : bits === 31 ? '0 (P2P链路)' : usable.toLocaleString());
+  setValue('c10-total', total.toLocaleString());
+  addToHistory('掩码→地址数', '/' + bits, '可用' + (bits === 31 ? '0' : bits === 32 ? '1' : usable.toLocaleString()) + ' / 共' + total.toLocaleString() + '个');
+}
+
+// ==================== APP STRUCTURE ====================
+
+const calculators = [
+  {
+    id: 'calc1', tab: 'IP计算器',
+    title: '网络和IP地址计算器',
+    subtitle: '输入IP和掩码位，计算网络、广播、可用地址等',
+    html: `
+      <div class="card">
+        <h2>网络和IP地址计算器</h2>
+        <p class="subtitle">输入IP和掩码位，计算网络、广播、可用地址等</p>
+        <div class="input-row">
+          <label>输入IP</label>
+          <input type="number" class="c1-ip" value="192" min="0" max="255" oninput="clampOctet(this);calc1()"><span class="dot">.</span>
+          <input type="number" class="c1-ip" value="168" min="0" max="255" oninput="clampOctet(this);calc1()"><span class="dot">.</span>
+          <input type="number" class="c1-ip" value="0" min="0" max="255" oninput="clampOctet(this);calc1()"><span class="dot">.</span>
+          <input type="number" class="c1-ip" value="1" min="0" max="255" oninput="clampOctet(this);calc1()">
+          <label style="margin-left:12px">掩码位</label>
+          <input type="number" class="c1-bits" value="24" min="0" max="32" style="width:56px" oninput="calc1()">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calc1()">计算</button>
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc1')">清空</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">可用IP<button class="copy-btn" onclick="copyValue('c1-avail',this)" title="复制">📋</button></div>
+            <div class="value" id="c1-avail">254</div>
+          </div>
+          <div class="output-group">
+            <div class="label">子网掩码<button class="copy-btn" onclick="copyOctetGroup('c1-mask',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c1-mask octet-val">-</span><span class="octet-dot">.</span><span class="c1-mask octet-val">-</span><span class="octet-dot">.</span><span class="c1-mask octet-val">-</span><span class="octet-dot">.</span><span class="c1-mask octet-val">-</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">网络地址<button class="copy-btn" onclick="copyOctetGroup('c1-net',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c1-net octet-val">-</span><span class="octet-dot">.</span><span class="c1-net octet-val">-</span><span class="octet-dot">.</span><span class="c1-net octet-val">-</span><span class="octet-dot">.</span><span class="c1-net octet-val">-</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">第一可用IP<button class="copy-btn" onclick="copyOctetGroup('c1-first',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c1-first octet-val">-</span><span class="octet-dot">.</span><span class="c1-first octet-val">-</span><span class="octet-dot">.</span><span class="c1-first octet-val">-</span><span class="octet-dot">.</span><span class="c1-first octet-val">-</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">最后可用IP<button class="copy-btn" onclick="copyOctetGroup('c1-last',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c1-last octet-val">-</span><span class="octet-dot">.</span><span class="c1-last octet-val">-</span><span class="octet-dot">.</span><span class="c1-last octet-val">-</span><span class="octet-dot">.</span><span class="c1-last octet-val">-</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">广播地址<button class="copy-btn" onclick="copyOctetGroup('c1-bcast',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c1-bcast octet-val">-</span><span class="octet-dot">.</span><span class="c1-bcast octet-val">-</span><span class="octet-dot">.</span><span class="c1-bcast octet-val">-</span><span class="octet-dot">.</span><span class="c1-bcast octet-val">-</span></div>
+          </div>
+        </div>
+      </div>`
+  },
+  {
+    id: 'calc2', tab: '掩码转换',
+    title: '子网掩码转换器',
+    subtitle: '掩码位数（CIDR）→ 点分十进制 & 十六进制',
+    html: `
+      <div class="card">
+        <h2>子网掩码转换器</h2>
+        <p class="subtitle">掩码位数（CIDR格式）转换为点分十进制和十六进制</p>
+        <div class="input-row">
+          <label>掩码位数</label>
+          <input type="number" class="c2-bits" value="24" min="0" max="32" style="width:56px" oninput="calc2()">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calc2()">计算</button>
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc2')">清空</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">十进制 (Dec)<button class="copy-btn" onclick="copyOctetGroup('c2-dec',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c2-dec octet-val">-</span><span class="octet-dot">.</span><span class="c2-dec octet-val">-</span><span class="octet-dot">.</span><span class="c2-dec octet-val">-</span><span class="octet-dot">.</span><span class="c2-dec octet-val">-</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">十六进制 (Hex)<button class="copy-btn" onclick="copyOctetGroup('c2-hex',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c2-hex octet-val">-</span><span class="octet-dot">.</span><span class="c2-hex octet-val">-</span><span class="octet-dot">.</span><span class="c2-hex octet-val">-</span><span class="octet-dot">.</span><span class="c2-hex octet-val">-</span></div>
+          </div>
+        </div>
+      </div>`
+  },
+  {
+    id: 'calc3', tab: '网络/节点',
+    title: '网络/节点计算器',
+    subtitle: '输入子网掩码和IP，计算网络地址、节点地址和广播地址',
+    html: `
+      <div class="card">
+        <h2>网络/节点计算器</h2>
+        <p class="subtitle">输入子网掩码和IP，分别计算网络部分和主机部分</p>
+        <div class="input-row">
+          <label>子网掩码</label>
+          <input type="number" class="c3-mask" value="255" min="0" max="255" oninput="clampOctet(this);calc3()"><span class="dot">.</span>
+          <input type="number" class="c3-mask" value="255" min="0" max="255" oninput="clampOctet(this);calc3()"><span class="dot">.</span>
+          <input type="number" class="c3-mask" value="255" min="0" max="255" oninput="clampOctet(this);calc3()"><span class="dot">.</span>
+          <input type="number" class="c3-mask" value="0" min="0" max="255" oninput="clampOctet(this);calc3()">
+        </div>
+        <div class="input-row">
+          <label>TCP/IP</label>
+          <input type="number" class="c3-ip" value="192" min="0" max="255" oninput="clampOctet(this);calc3()"><span class="dot">.</span>
+          <input type="number" class="c3-ip" value="168" min="0" max="255" oninput="clampOctet(this);calc3()"><span class="dot">.</span>
+          <input type="number" class="c3-ip" value="0" min="0" max="255" oninput="clampOctet(this);calc3()"><span class="dot">.</span>
+          <input type="number" class="c3-ip" value="1" min="0" max="255" oninput="clampOctet(this);calc3()">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calc3()">计算</button>
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc3')">清空</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">网络地址<button class="copy-btn" onclick="copyOctetGroup('c3-net',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c3-net octet-val">-</span><span class="octet-dot">.</span><span class="c3-net octet-val">-</span><span class="octet-dot">.</span><span class="c3-net octet-val">-</span><span class="octet-dot">.</span><span class="c3-net octet-val">-</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">节点/主机<button class="copy-btn" onclick="copyOctetGroup('c3-node',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c3-node octet-val">-</span><span class="octet-dot">.</span><span class="c3-node octet-val">-</span><span class="octet-dot">.</span><span class="c3-node octet-val">-</span><span class="octet-dot">.</span><span class="c3-node octet-val">-</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">广播地址<button class="copy-btn" onclick="copyOctetGroup('c3-bcast',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c3-bcast octet-val">-</span><span class="octet-dot">.</span><span class="c3-bcast octet-val">-</span><span class="octet-dot">.</span><span class="c3-bcast octet-val">-</span><span class="octet-dot">.</span><span class="c3-bcast octet-val">-</span></div>
+          </div>
+        </div>
+      </div>`
+  },
+  {
+    id: 'calc4', tab: '逆算掩码',
+    title: '十进制子网掩码逆算器',
+    subtitle: '计算掩码的按位取反（Wildcard Mask），常用于ACL配置',
+    html: `
+      <div class="card">
+        <h2>十进制子网掩码逆算器（Wildcard Mask）</h2>
+        <p class="subtitle">计算掩码的按位取反（Wildcard Mask），常用于ACL配置</p>
+        <div class="input-row">
+          <label>点格式掩码</label>
+          <input type="number" class="c4-mask" value="255" min="0" max="255" oninput="clampOctet(this);calc4()"><span class="dot">.</span>
+          <input type="number" class="c4-mask" value="255" min="0" max="255" oninput="clampOctet(this);calc4()"><span class="dot">.</span>
+          <input type="number" class="c4-mask" value="255" min="0" max="255" oninput="clampOctet(this);calc4()"><span class="dot">.</span>
+          <input type="number" class="c4-mask" value="0" min="0" max="255" oninput="clampOctet(this);calc4()">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calc4()">计算</button>
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc4')">清空</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">逆算结果 (Wildcard)<button class="copy-btn" onclick="copyOctetGroup('c4-inv',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c4-inv octet-val">-</span><span class="octet-dot">.</span><span class="c4-inv octet-val">-</span><span class="octet-dot">.</span><span class="c4-inv octet-val">-</span><span class="octet-dot">.</span><span class="c4-inv octet-val">-</span></div>
+          </div>
+        </div>
+      </div>`
+  },
+  {
+    id: 'calc5', tab: '掩码换算',
+    title: '十进制子网掩码换算器',
+    subtitle: '点分十进制掩码 ↔ CIDR位数 双向换算',
+    html: `
+      <div class="card">
+        <h2>十进制子网掩码换算器</h2>
+        <p class="subtitle">点分十进制掩码与CIDR位数的相互转换</p>
+        <div class="input-row">
+          <label>点格式掩码</label>
+          <input type="number" class="c5-dec" placeholder="255" min="0" max="255" oninput="clampOctet(this)"><span class="dot">.</span>
+          <input type="number" class="c5-dec" placeholder="255" min="0" max="255" oninput="clampOctet(this)"><span class="dot">.</span>
+          <input type="number" class="c5-dec" placeholder="255" min="0" max="255" oninput="clampOctet(this)"><span class="dot">.</span>
+          <input type="number" class="c5-dec" placeholder="0" min="0" max="255" oninput="clampOctet(this)">
+          <button class="btn btn-primary" onclick="calc5_dec2bits()">→ 位数</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">掩码位元数<button class="copy-btn" onclick="copyValue('c5-bits',this)" title="复制">📋</button></div>
+            <div class="value" id="c5-bits">-</div>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="input-row">
+          <label>掩码位元数</label>
+          <input type="number" class="c5-bits-in" value="24" min="0" max="32" style="width:56px">
+          <button class="btn btn-primary" onclick="calc5_bits2dec()">→ 掩码</button>
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc5')">清空</button>
+        </div>
+      </div>`
+  },
+  {
+    id: 'calc6', tab: 'IP位补',
+    title: 'IP位补计算器（取反）',
+    subtitle: '对IP地址执行按位取反操作（Bitwise NOT）',
+    html: `
+      <div class="card">
+        <h2>IP位补计算器（取反）</h2>
+        <p class="subtitle">对IP地址执行按位取反操作（Bitwise NOT）</p>
+        <div class="input-row">
+          <label>输入IP</label>
+          <input type="number" class="c6-ip" value="255" min="0" max="255" oninput="clampOctet(this);calc6()"><span class="dot">.</span>
+          <input type="number" class="c6-ip" value="255" min="0" max="255" oninput="clampOctet(this);calc6()"><span class="dot">.</span>
+          <input type="number" class="c6-ip" value="255" min="0" max="255" oninput="clampOctet(this);calc6()"><span class="dot">.</span>
+          <input type="number" class="c6-ip" value="255" min="0" max="255" oninput="clampOctet(this);calc6()">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calc6()">计算</button>
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc6')">清空</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">取反结果 (Bitwise NOT)<button class="copy-btn" onclick="copyOctetGroup('c6-comp',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c6-comp octet-val">-</span><span class="octet-dot">.</span><span class="c6-comp octet-val">-</span><span class="octet-dot">.</span><span class="c6-comp octet-val">-</span><span class="octet-dot">.</span><span class="c6-comp octet-val">-</span></div>
+          </div>
+        </div>
+      </div>`
+  },
+  {
+    id: 'calc7', tab: '网络类型',
+    title: '网络类型计算器',
+    subtitle: '判断IP地址类型（A/B/C/D/E），显示默认掩码和可用主机数',
+    html: `
+      <div class="card">
+        <h2>网络类型计算器</h2>
+        <p class="subtitle">判断IP地址类型（A/B/C/D/E），显示默认掩码和可用主机数</p>
+        <div class="input-row">
+          <label>输入IP</label>
+          <input type="number" class="c7-ip" value="192" min="0" max="255" oninput="clampOctet(this);calc7()"><span class="dot">.</span>
+          <input type="number" class="c7-ip" value="168" min="0" max="255" oninput="clampOctet(this);calc7()"><span class="dot">.</span>
+          <input type="number" class="c7-ip" value="0" min="0" max="255" oninput="clampOctet(this);calc7()"><span class="dot">.</span>
+          <input type="number" class="c7-ip" value="1" min="0" max="255" oninput="clampOctet(this);calc7()">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calc7()">计算</button>
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc7')">清空</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">网络类型<button class="copy-btn" onclick="copyValue('c7-class',this)" title="复制">📋</button></div>
+            <div class="value"><span id="c7-class" class="badge badge-c">C类</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">默认子网掩码<button class="copy-btn" onclick="copyOctetGroup('c7-mask',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c7-mask octet-val">-</span><span class="octet-dot">.</span><span class="c7-mask octet-val">-</span><span class="octet-dot">.</span><span class="c7-mask octet-val">-</span><span class="octet-dot">.</span><span class="c7-mask octet-val">-</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">CIDR标注<button class="copy-btn" onclick="copyValue('c7-cidr',this)" title="复制">📋</button></div>
+            <div class="value" id="c7-cidr">/24</div>
+          </div>
+          <div class="output-group">
+            <div class="label">可用主机数<button class="copy-btn" onclick="copyValue('c7-hosts',this)" title="复制">📋</button></div>
+            <div class="value" id="c7-hosts">16,777,214</div>
+          </div>
+          <div class="output-group">
+            <div class="label">网络数量<button class="copy-btn" onclick="copyValue('c7-networks',this)" title="复制">📋</button></div>
+            <div class="value" id="c7-networks">2,097,152</div>
+          </div>
+        </div>
+      </div>`
+  },
+  {
+    id: 'calc8', tab: '主机→掩码',
+    title: '通过主机数量计算掩码',
+    subtitle: '输入需要的IP数量，自动推荐最小的子网掩码',
+    html: `
+      <div class="card">
+        <h2>通过主机数量计算掩码</h2>
+        <p class="subtitle">输入需要的IP数量，自动推荐最小的子网掩码</p>
+        <div class="input-row">
+          <label>需要数量</label>
+          <input type="number" class="c8-count" value="5" min="1" style="width:80px" oninput="calc8()">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calc8()">计算</button>
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc8')">清空</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">推荐掩码位数<button class="copy-btn" onclick="copyValue('c8-bits',this)" title="复制">📋</button></div>
+            <div class="value" id="c8-bits">-</div>
+          </div>
+          <div class="output-group">
+            <div class="label">子网掩码<button class="copy-btn" onclick="copyOctetGroup('c8-mask',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c8-mask octet-val">-</span><span class="octet-dot">.</span><span class="c8-mask octet-val">-</span><span class="octet-dot">.</span><span class="c8-mask octet-val">-</span><span class="octet-dot">.</span><span class="c8-mask octet-val">-</span></div>
+          </div>
+          <div class="output-group">
+            <div class="label">实际可用IP<button class="copy-btn" onclick="copyValue('c8-avail',this)" title="复制">📋</button></div>
+            <div class="value" id="c8-avail">-</div>
+          </div>
+        </div>
+      </div>`
+  },
+  {
+    id: 'calc9', tab: '进制转换',
+    title: 'TCP/IP 进制转换器',
+    subtitle: '十进制 ↔ 二进制 ↔ 十六进制 ↔ 32位整数 多向转换',
+    html: `
+      <div class="card">
+        <h2>TCP/IP 进制转换器</h2>
+        <p class="subtitle">IP地址在十进制、二进制、十六进制、32位整数间自由转换</p>
+        <div class="input-row">
+          <label>点格式十进制</label>
+          <input type="number" class="c9-dec" value="192" min="0" max="255" oninput="clampOctet(this);calc9_dec()"><span class="dot">.</span>
+          <input type="number" class="c9-dec" value="168" min="0" max="255" oninput="clampOctet(this);calc9_dec()"><span class="dot">.</span>
+          <input type="number" class="c9-dec" value="0" min="0" max="255" oninput="clampOctet(this);calc9_dec()"><span class="dot">.</span>
+          <input type="number" class="c9-dec" value="1" min="0" max="255" oninput="clampOctet(this);calc9_dec()">
+          <button class="btn btn-primary" onclick="calc9_dec_record()">计算</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">二进制 (Binary)<button class="copy-btn" onclick="copyOctetGroup('c9-bin',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c9-bin octet-val">-</span><span class="octet-dot">.</span><span class="c9-bin octet-val">-</span><span class="octet-dot">.</span><span class="c9-bin octet-val">-</span><span class="octet-dot">.</span><span class="c9-bin octet-val">-</span></div>
+            <div style="margin-top:6px">
+              <input class="c9-bin" placeholder="11000000" style="width:100%;font-size:12px;font-family:'SF Mono',Menlo,monospace;border:1px solid var(--input-border);border-radius:6px;padding:4px 8px;background:var(--input-bg);color:var(--text)" oninput="calc9_bin()">
+            </div>
+          </div>
+          <div class="output-group">
+            <div class="label">十六进制 (Hex)<button class="copy-btn" onclick="copyOctetGroup('c9-hex',this)" title="复制">📋</button></div>
+            <div class="value"><span class="c9-hex octet-val">-</span><span class="octet-dot">.</span><span class="c9-hex octet-val">-</span><span class="octet-dot">.</span><span class="c9-hex octet-val">-</span><span class="octet-dot">.</span><span class="c9-hex octet-val">-</span></div>
+            <div style="margin-top:6px">
+              <input class="c9-hex" placeholder="C0.A8.00.01" style="width:100%;font-size:12px;font-family:'SF Mono',Menlo,monospace;border:1px solid var(--input-border);border-radius:6px;padding:4px 8px;background:var(--input-bg);color:var(--text)" oninput="calc9_hex()">
+            </div>
+          </div>
+          <div class="output-group">
+            <div class="label">32位整数<button class="copy-btn" onclick="copyValue('c9-int32',this)" title="复制">📋</button></div>
+            <div class="value" id="c9-int32">-</div>
+            <div style="margin-top:6px">
+              <input class="c9-int32" placeholder="输入32位整数" style="width:100%;font-size:12px;font-family:'SF Mono',Menlo,monospace;border:1px solid var(--input-border);border-radius:6px;padding:4px 8px;background:var(--input-bg);color:var(--text)" oninput="calc9_int32()">
+            </div>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:12px">
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc9')">清空</button>
+        </div>
+      </div>`
+  },
+  {
+    id: 'calc10', tab: '掩码→地址数',
+    title: '掩码转换到可用地址数量',
+    subtitle: '根据CIDR掩码位数计算可用IP数量和总地址数',
+    html: `
+      <div class="card">
+        <h2>掩码转换到可用地址数量</h2>
+        <p class="subtitle">输入CIDR掩码位数，计算可用IP数量和总地址数</p>
+        <div class="input-row">
+          <label>掩码位数</label>
+          <input type="number" class="c10-bits" value="27" min="0" max="32" style="width:56px" oninput="calc10()">
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="calc10()">计算</button>
+          <button class="btn btn-secondary" onclick="clearAndCalc('calc10')">清空</button>
+        </div>
+        <div class="output-grid">
+          <div class="output-group">
+            <div class="label">可用地址量<button class="copy-btn" onclick="copyValue('c10-avail',this)" title="复制">📋</button></div>
+            <div class="value" id="c10-avail">30</div>
+          </div>
+          <div class="output-group">
+            <div class="label">地址总量<button class="copy-btn" onclick="copyValue('c10-total',this)" title="复制">📋</button></div>
+            <div class="value" id="c10-total">32</div>
+          </div>
+        </div>
+      </div>`
+  }
+];
+
+// ==================== UTILITY FUNCTIONS ====================
+
+function clampOctet(el) {
+  let v = parseInt(el.value) || 0;
+  if (v < 0) v = 0;
+  if (v > 255) v = 255;
+  el.value = v;
+}
+
+// Clear function map
+const clearDefaults = {
+  calc1: () => {
+    qa('input.c1-ip').forEach((el, i) => { el.value = [192, 168, 0, 1][i]; });
+    q('.c1-bits').value = '24';
+    q('#c1-avail').textContent = '';
+    setOctetOutput('c1-mask', ['-', '-', '-', '-']);
+    setOctetOutput('c1-net', ['-', '-', '-', '-']);
+    setOctetOutput('c1-first', ['-', '-', '-', '-']);
+    setOctetOutput('c1-last', ['-', '-', '-', '-']);
+    setOctetOutput('c1-bcast', ['-', '-', '-', '-']);
+  },
+  calc2: () => {
+    q('.c2-bits').value = '24';
+    setOctetOutput('c2-dec', ['-', '-', '-', '-']);
+    setOctetOutput('c2-hex', ['-', '-', '-', '-']);
+  },
+  calc3: () => {
+    qa('input.c3-mask').forEach((el, i) => { el.value = [255, 255, 255, 0][i]; });
+    qa('input.c3-ip').forEach((el, i) => { el.value = [192, 168, 0, 1][i]; });
+    setOctetOutput('c3-net', ['-', '-', '-', '-']);
+    setOctetOutput('c3-node', ['-', '-', '-', '-']);
+    setOctetOutput('c3-bcast', ['-', '-', '-', '-']);
+  },
+  calc4: () => {
+    qa('input.c4-mask').forEach((el, i) => { el.value = [255, 255, 255, 0][i]; });
+    setOctetOutput('c4-inv', ['-', '-', '-', '-']);
+  },
+  calc5: () => {
+    qa('input.c5-dec').forEach(el => { el.value = ''; });
+    q('.c5-bits-in').value = '24';
+    setValue('c5-bits', '-');
+  },
+  calc6: () => {
+    qa('input.c6-ip').forEach(el => { el.value = '255'; });
+    setOctetOutput('c6-comp', ['-', '-', '-', '-']);
+  },
+  calc7: () => {
+    qa('input.c7-ip').forEach((el, i) => { el.value = [192, 168, 0, 1][i]; });
+    q('#c7-class').textContent = '';
+    q('#c7-class').className = '';
+    setOctetOutput('c7-mask', ['-', '-', '-', '-']);
+    setValue('c7-cidr', '-');
+    setValue('c7-hosts', '-');
+    setValue('c7-networks', '-');
+  },
+  calc8: () => {
+    q('.c8-count').value = '5';
+    setValue('c8-bits', '-');
+    setOctetOutput('c8-mask', ['-', '-', '-', '-']);
+    setValue('c8-avail', '-');
+  },
+  calc9: () => {
+    qa('input.c9-dec').forEach((el, i) => { el.value = [192, 168, 0, 1][i]; });
+    setOctetOutput('c9-bin', ['-', '-', '-', '-']);
+    setOctetOutput('c9-hex', ['-', '-', '-', '-']);
+    setValue('c9-int32', '-');
+    qa('input.c9-bin,input.c9-hex,input.c9-int32').forEach(el => { el.value = ''; });
+  },
+  calc10: () => {
+    q('.c10-bits').value = '27';
+    setValue('c10-avail', '-');
+    setValue('c10-total', '-');
+  }
+};
+
+function clearAndCalc(id) {
+  if (clearDefaults[id]) clearDefaults[id]();
+  // Kick off calculation for this calculator
+  const calcMap = { calc1, calc2, calc3, calc4, calc5: () => {}, calc6, calc7, calc8, calc9: calc9_dec, calc10 };
+  if (calcMap[id]) calcMap[id]();
+}
+
+// ==================== BUILD UI ====================
+
+const tabsEl = q('#tabs');
+const mainEl = q('#main');
+
+calculators.forEach((c, i) => {
+  tabsEl.innerHTML += `<button class="tab${i === 0 ? ' active' : ''}" onclick="switchTab('${c.id}')">${c.tab}</button>`;
+  mainEl.innerHTML += `<div class="calculator${i === 0 ? ' active' : ''}" id="${c.id}">${c.html}</div>`;
+});
+
+// Add history section after calculators
+mainEl.innerHTML += `
+  <div class="history-section">
+    <h3>📜 计算历史 <span class="count" id="h-count"></span>
+      <button class="btn btn-secondary" style="margin-left:auto;font-size:11px;padding:4px 10px" onclick="clearHistory()">清除历史</button>
+    </h3>
+    <div class="history-list" id="history-list"></div>
+  </div>
+`;
+
+function switchTab(id) {
+  qa('.tab').forEach(t => t.classList.remove('active'));
+  qa('.calculator').forEach(c => c.classList.remove('active'));
+  const idx = calculators.findIndex(c => c.id === id);
+  if (idx >= 0) qa('.tab')[idx].classList.add('active');
+  const calc = q('#' + id);
+  if (calc) calc.classList.add('active');
+  // Trigger calculation for the newly visible tab
+  const calcFns = [calc1, calc2, calc3, calc4, () => {}, calc6, calc7, calc8, calc9_dec, calc10];
+  if (calcFns[idx]) calcFns[idx]();
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key >= '1' && e.key <= '9') {
+    e.preventDefault();
+    switchTab(calculators[parseInt(e.key) - 1].id);
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === '0') {
+    e.preventDefault();
+    switchTab(calculators[9].id);
+  }
+});
+
+// ==================== TEST SUITE ====================
+
+function runTests() {
+  const results = [];
+  let pass = 0, fail = 0;
+
+  function t(name, actual, expected) {
+    const ok = actual === expected;
+    if (ok) pass++; else fail++;
+    results.push({ name, actual, expected, ok });
+    if (!ok) console.error('FAIL: ' + name + '\n  expected: ' + expected + '\n  actual:   ' + actual);
+  }
+
+  function ti(name, actual, expected) { t(name, actual.join('.'), expected); }
+
+  // --- calc1: Network & IP Calculator ---
+  // 192.168.0.1/24
+  t('calc1: 192.168.0.1/24 usable', usableCount(24), 254);
+  ti('calc1: 192.168.0.1/24 net', intToIp(networkAddress(ipToInt(192,168,0,1), 24)), '192.168.0.0');
+  ti('calc1: 192.168.0.1/24 mask', intToIp(maskBitsToInt(24)), '255.255.255.0');
+  ti('calc1: 192.168.0.1/24 first', intToIp(firstUsable(ipToInt(192,168,0,1), 24)), '192.168.0.1');
+  ti('calc1: 192.168.0.1/24 last', intToIp(lastUsable(ipToInt(192,168,0,1), 24)), '192.168.0.254');
+  ti('calc1: 192.168.0.1/24 bcast', intToIp(broadcastAddress(ipToInt(192,168,0,1), 24)), '192.168.0.255');
+  // 10.0.0.1/8
+  t('calc1: 10.0.0.1/8 usable', usableCount(8), 16777214);
+  ti('calc1: 10.0.0.1/8 net', intToIp(networkAddress(ipToInt(10,0,0,1), 8)), '10.0.0.0');
+  ti('calc1: 10.0.0.1/8 bcast', intToIp(broadcastAddress(ipToInt(10,0,0,1), 8)), '10.255.255.255');
+  // 0.0.0.0/0 (edge case: entire IPv4 space)
+  t('calc1: /0 usable', usableCount(0), 4294967294);
+  t('calc1: /0 total', totalCount(0), 4294967296);
+  // /32 (host route)
+  t('calc1: /32 usable', usableCount(32), 1);
+  t('calc1: /32 total', totalCount(32), 1);
+  // /31 (P2P)
+  t('calc1: /31 usable', usableCount(31), 0);
+
+  // --- calc2: Mask Converter ---
+  ti('calc2: /24 dec', intToIp(maskBitsToInt(24)), '255.255.255.0');
+  ti('calc2: /16 dec', intToIp(maskBitsToInt(16)), '255.255.0.0');
+  ti('calc2: /8 dec', intToIp(maskBitsToInt(8)), '255.0.0.0');
+  ti('calc2: /0 dec', intToIp(maskBitsToInt(0)), '0.0.0.0');
+
+  // --- calc3: Network/Node ---
+  const m24 = ipToInt(255,255,255,0);
+  const ip = ipToInt(192,168,0,1);
+  const b24 = maskIntToBits(m24);
+  ti('calc3: 255.255.255.0+192.168.0.1 net', intToIp(networkAddress(ip, b24)), '192.168.0.0');
+  ti('calc3: 255.255.255.0+192.168.0.1 node', intToIp((ip & wildcard(m24)) >>> 0), '0.0.0.1');
+  ti('calc3: 255.255.255.0+192.168.0.1 bcast', intToIp(broadcastAddress(ip, b24)), '192.168.0.255');
+
+  // --- calc4: Wildcard ---
+  ti('calc4: 255.255.255.0 inv', intToIp(wildcard(ipToInt(255,255,255,0))), '0.0.0.255');
+  ti('calc4: 255.255.0.0 inv', intToIp(wildcard(ipToInt(255,255,0,0))), '0.0.255.255');
+  ti('calc4: 0.0.0.0 inv', intToIp(wildcard(ipToInt(0,0,0,0))), '255.255.255.255');
+
+  // --- calc5: Mask <-> Bits ---
+  t('calc5: 255.255.255.0 -> bits', maskIntToBits(ipToInt(255,255,255,0)), 24);
+  t('calc5: 255.255.0.0 -> bits', maskIntToBits(ipToInt(255,255,0,0)), 16);
+  t('calc5: invalid mask -> -1', maskIntToBits(ipToInt(255,0,255,0)), -1);
+  ti('calc5: /24 -> dec', intToIp(maskBitsToInt(24)), '255.255.255.0');
+  ti('calc5: /0 -> dec', intToIp(maskBitsToInt(0)), '0.0.0.0');
+
+  // --- calc6: IP Complement ---
+  ti('calc6: 255.255.255.255 NOT', intToIp((~ipToInt(255,255,255,255))>>>0), '0.0.0.0');
+  ti('calc6: 0.0.0.0 NOT', intToIp((~ipToInt(0,0,0,0))>>>0), '255.255.255.255');
+  ti('calc6: 192.168.0.1 NOT', intToIp((~ipToInt(192,168,0,1))>>>0), '63.87.255.254');
+
+  // --- calc7: IP Class ---
+  t('calc7: 10.0.0.1 class', ipClass(10).name, 'A');
+  t('calc7: 172.16.0.1 class', ipClass(172).name, 'B');
+  t('calc7: 192.168.0.1 class', ipClass(192).name, 'C');
+  t('calc7: 224.0.0.1 class', ipClass(224).name, 'D');
+  t('calc7: 240.0.0.1 class', ipClass(240).name, 'E');
+  t('calc7: 127.0.0.1 class', ipClass(127).name, 'Loopback');
+  t('calc7: class A defaultMask', defaultMask(ipToInt(10,0,0,1)), 8);
+  t('calc7: class C defaultMask', defaultMask(ipToInt(192,168,0,1)), 24);
+
+  // --- calc8: Host Count to Mask ---
+  t('calc8: need 5 IPs -> bits', hostCountToMaskBits(5), 29);
+  t('calc8: need 1 IP -> bits', hostCountToMaskBits(1), 30);
+  t('calc8: need 254 IPs -> bits', hostCountToMaskBits(254), 24);
+  t('calc8: need 1000 IPs -> bits', hostCountToMaskBits(1000), 22);
+  t('calc8: need 65534 IPs -> bits', hostCountToMaskBits(65534), 16);
+
+  // --- calc9: Base Converter ---
+  ti('calc9: 192.168.0.1 ipToInt', intToIp(ipToInt(192,168,0,1)), '192.168.0.1');
+  t('calc9: 192.168.0.1 as int32', ipToInt(192,168,0,1), 3232235521);
+  t('calc9: 255.255.255.255 as int32', ipToInt(255,255,255,255), 4294967295);
+
+  // --- calc10: Mask to Available Addresses ---
+  t('calc10: /27 usable', usableCount(27), 30);
+  t('calc10: /27 total', totalCount(27), 32);
+  t('calc10: /24 usable', usableCount(24), 254);
+  t('calc10: /24 total', totalCount(24), 256);
+  t('calc10: /16 usable', usableCount(16), 65534);
+  t('calc10: /16 total', totalCount(16), 65536);
+  t('calc10: /0 usable', usableCount(0), 4294967294);
+  t('calc10: /0 total', totalCount(0), 4294967296);
+
+  console.log('=== Test Results: ' + pass + '/' + (pass + fail) + ' passed ===');
+  if (fail > 0) console.error(fail + ' TESTS FAILED');
+  else console.log('✅ All tests passed!');
+  return { pass, fail, results };
+}
+
+// ==================== INIT ====================
+
+// Initial calculation for the active tab
+calc1();
+
+// Render history on load
+renderHistory();
+
+// Auto-run tests in console
+console.log('🧪 子网掩码计算器测试套件已加载。运行 runTests() 查看结果。');
+// Auto-run on load
+setTimeout(() => { runTests(); }, 200);
+</script>
+
+</body>
+</html>
