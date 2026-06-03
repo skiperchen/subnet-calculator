@@ -29,7 +29,7 @@
 
 ## 下载
 
-前往 [Releases](https://github.com/forrestchang/subnet-calculator/releases) 下载最新版本：
+前往 [Releases](https://github.com/skiperchen/subnet-calculator/releases) 下载最新版本：
 
 - **Apple Silicon (M1/M2/M3)**: `子网掩码计算器-macOS-arm64.zip`
 - **Intel Mac**: `子网掩码计算器-macOS-x64.zip`
