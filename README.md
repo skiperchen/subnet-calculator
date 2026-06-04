@@ -1,6 +1,6 @@
 # 子网掩码计算器 (Subnet Mask Calculator)
 
-一个 macOS 原生桌面应用，集成 **10 种网络计算工具**，基于 Electron 构建，灵感来源于 [chinaz 子网掩码计算器](https://tool.chinaz.com/tools/subnetmask/)。
+一个 macOS 原生桌面应用，集成 **10 种网络计算工具**。
 
 ## 功能模块
 
@@ -65,4 +65,4 @@ npm run build:mac-x64   # 仅 Intel Mac
 
 ## 许可证
 
-MIT License © 2026 陈常勇 (Chen Changyong)
+MIT License © 2026 skiperchen 
