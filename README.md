@@ -35,6 +35,8 @@
 - **Intel Mac**: `子网掩码计算器-macOS-x64.zip`
 
 > ⚠️ 首次打开提示「无法验证开发者」→ 系统设置 → 隐私与安全性 → 仍要打开
+> <img width="1164" height="846" alt="image" src="https://github.com/user-attachments/assets/b3a7cc55-81f7-4006-bf83-2181a001cc1d" />
+
 
 ## 开发
 
